@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>JqWeUI多图上传（可一次打开多张图和每次打开一张图）</title>
+    <!-- 引入 WeUI -->
+    <link href="css/weui.css" rel="stylesheet"></link>
+    <link href="css/jquery-weui.css" rel="stylesheet"></link>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        font-size: 14px;
+    }
+    body{
+        background: #efefef;
+    }
+    .frist_row{
+    margin-bottom:20px;
+    background: #fff; 
+    height: 100px;
+    width: 100%;
+    }
+    .frist_row p{  
+    
+    float: left;
+    }
+    .frist_row .name{  
+    color:orange;
+    }
+    .frist_row div{
+    padding: 10px;  
+    }
+    .weui-uploader__bd{
+        margin: 0;
+    }
+
+
+    </style>
+</head>
+<body ontouchstart>
+    <form id="weuiForm" action="" method="post" enctype="multipart/form-data">  
+        <div class="weui-cell__bd">
+            <div class="weui-uploader">
+                 <div class="weui-gallery" id="gallery">
+                      <span class="weui-gallery__img" id="galleryImg"></span>
+                      <div class="weui-gallery__opr">
+                          <a href="javascript:" class="weui-gallery__del">
+                              <i class="weui-icon-delete weui-icon_gallery-delete"></i>
+                          </a>
+                      </div>
+                  </div>
+                <div class="weui-uploader__bd">
+                    <ul class="weui-uploader__files" id="uploaderFiles">
+                                          <!-- <li class="weui-uploader__file weui-uploader__file_status" style="background-image:url(./images/pic_160.png)">
+                                              <div class="weui-uploader__file-content">
+                                                  <i class="weui-icon-warn"></i>
+                                              </div>
+                                          </li> -->
+                    </ul>
+                    <div id="uploaderInput_par" class="weui-uploader__input-box">
+                        <input id="uploaderInput" name="uploadImages" class="weui-uploader__input" type="file" accept="image/*" multiple="">
+                   </div>
+              </div>
+            </div>
+        </div>
+    </form>
+    <div class="weui-footer weui-footer_fixed-bottom footer">
+      <p class="weui-footer__text">Copyright © 2019-2099 版权所有 不得抄袭</p>
+    </div>
+    <input type="text" id="img_str" style="display: none;">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-weui.js"></script>
+    <script src="js/jquery.form.js"></script>
+    <script src="js/all-case.js"></script>
+    <script>
+        $(function(){
+        var tmpl = '<li id="#imgname#_li" class="weui-uploader__file" style="background-image:url(#url#)"></li>',
+            $gallery = $("#gallery"), $galleryImg = $("#galleryImg"),
+            // $uploaderInput = $("#uploaderInput"),
+            $uploaderInput = $("#uploaderInput_par"),
+            $uploaderFiles = $("#uploaderFiles");
+
+			/*表单提交后后台解析传入参数uploadImages成文件列表即可，如Python（files = request.FILES.getlist('uploadImages')）*/
+        $uploaderInput.on("change","#uploaderInput", function(e){
+            var src, url = window.URL || window.webkitURL || window.mozURL, files = e.target.files;
+            for (var i = 0, len = files.length; i < len; ++i) {
+                var file = files[i];
+
+                if (url) {
+                    src = url.createObjectURL(file);
+                } else {
+                    src = e.target.result;
+                }
+
+                // $uploaderFiles.append($(tmpl.replace('#url#', src)));
+                var src_split = src.split('/'); 
+                $uploaderFiles.append($(tmpl.replace('#url#', src).replace('#imgname#', src_split[src_split.length-1])));
+        //copy
+        //其中img_str 为我自己写的隐藏文本框，用来存放所有的图片名称组成的字符,类似"'名称1','名称2'，'名称3'"，因为我用这个隐藏框的值，来删除页面页面的指定图片。
+                    if($("#img_str").val() == '' || $("#img_str").val() == null){
+                       $("#img_str").val("'"+src_split[src_split.length-1]+"'");
+                    }else{
+                       $("#img_str").val($("#img_str").val()+",'"+src_split[src_split.length-1]+"'");
+                    }
+                    
+                    //开启隐藏上传 div
+                    $(this).after('<input id="uploaderInput"   name="uploadImages"  class="weui-uploader__input" type="file"   accept="image/*" multiple/>');
+                    $(this).hide();
+                    $(this).attr({id:""+src_split[src_split.length-1].replace(".","_")+"_input"}); 
+            }
+        });
+
+        $uploaderFiles.on("click", "li", function(){
+            $galleryImg.attr("style", this.getAttribute("style"));
+            $gallery.fadeIn(100);
+        });
+        $gallery.on("click", function(){
+            $gallery.fadeOut(100);
+        });
+
+        //删除图片  删除图片的代码也贴出来。
+             $(".weui-gallery__del").click(function(){ 
+                  var imgback = $(this).parent("div").prev().attr("style");
+                  var imgback_array= imgback.split(')');
+                  imgback_array= imgback_array[0].split('/');
+                  $("#"+imgback_array[imgback_array.length-1].replace(".","_")+"_input").remove();
+                  $("#"+imgback_array[imgback_array.length-1].replace(".","_")+"_li").remove();
+    
+                  var img_str = $("#img_str").val().split(',');
+                  var img_str_new = '';
+                  for(var i=0;i<img_str.length;i++){
+                     if(img_str[i] != "'"+imgback_array[imgback_array.length-1]+"'"){
+                         if(img_str_new == ''){
+                             img_str_new = img_str[i];
+                         }else{
+                               img_str_new = img_str_new+","+img_str[i];
+                         }
+                     }
+                  }
+                  $("#img_str").val(img_str_new);
+             }); 
+             
+    });
+    </script>
+</body>
+</html>
